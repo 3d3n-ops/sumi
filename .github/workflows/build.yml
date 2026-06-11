@@ -13,22 +13,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: List available Xcode versions
-        run: ls /Applications | grep Xcode
-
       - name: Select Xcode
-        run: |
-          XCODE=$(ls /Applications | grep Xcode | sort -V | tail -1)
-          echo "Using $XCODE"
-          sudo xcode-select -s /Applications/$XCODE
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+      - name: List schemes
+        run: xcodebuild -list
 
       - name: Build
         run: |
           xcodebuild build \
-            -scheme Sumi \
+            -scheme sumi-ios \
             -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
@@ -37,7 +31,7 @@ jobs:
       - name: Test
         run: |
           xcodebuild test \
-            -scheme SumiTests \
+            -scheme sumi-iosTests \
             -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO
