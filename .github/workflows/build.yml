@@ -16,9 +16,6 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.3.app
 
-      - name: List schemes
-        run: xcodebuild -list
-
       - name: Build
         run: |
           xcodebuild build \
@@ -31,7 +28,7 @@ jobs:
       - name: Test
         run: |
           xcodebuild test \
-            -scheme sumi-iosTests \
+            -scheme sumi-ios \
             -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO
