@@ -6,29 +6,44 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  build-test:
     runs-on: macos-15-xlarge
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.3.app
-
-      - name: Build
+      # Pick the newest Xcode 26.x present on the runner rather than a hardcoded
+      # point release, so the workflow survives image updates (26.0 -> 26.1 ...).
+      - name: Select latest Xcode 26
         run: |
-          xcodebuild build \
-            -scheme sumi-ios \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
-            -configuration Debug \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -z "$XCODE" ]; then
+            echo "No Xcode 26 on this runner. Installed:"; ls -d /Applications/Xcode*.app
+            exit 1
+          fi
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
 
-      - name: Test
+      # Surfaced in logs so a destination mismatch is easy to diagnose.
+      - name: List simulators
+        run: |
+          xcrun simctl list runtimes
+          xcrun simctl list devices available | grep -i iphone || true
+
+      # `xcodebuild test` compiles the app + test targets, so this covers the
+      # build too. OS=latest binds to the newest iOS runtime on the image
+      # (must be >= the 26.0 deployment target). Simulator builds need no signing.
+      - name: Build & test
         run: |
           xcodebuild test \
             -scheme sumi-ios \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO

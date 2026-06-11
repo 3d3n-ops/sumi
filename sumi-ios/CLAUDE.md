@@ -12,13 +12,16 @@ Xcode 26.3, XcodeBuildMCP wired for terminal builds
 SPM dependencies: SQLite.swift (for sqlite-vec), swift-markdown-ui
 
 ## Folder structure
-Sumi/AppIntents/     — all Siri-facing App Intents
-Sumi/Agent/          — LLMRouter, ReAct loop, tool registry
-Sumi/Memory/         — SwiftData models, EmbeddingService, MemoryStore
-Sumi/Proactive/      — BGTask engine, trigger types, ProactiveSurface
-Sumi/Integrations/   — EventKit, Contacts, Reminders, Notes, Mail tools
-Sumi/UI/             — Settings only (SwiftUI)
-Sumi/Workers/        — Cloudflare Worker JS (separate subfolder)
+Source root is sumi-ios/ (a synchronized root group — files added under it are
+auto-included in the build target). Module name: sumi_ios. App entry:
+sumi-ios/sumi_iosApp.swift. Unit tests: sumi-iosTests/ (Swift Testing framework).
+sumi-ios/AppIntents/     — all Siri-facing App Intents
+sumi-ios/Agent/          — LLMRouter, ReAct loop, tool registry
+sumi-ios/Memory/         — SwiftData models, EmbeddingService, MemoryStore
+sumi-ios/Proactive/      — BGTask engine, trigger types, ProactiveSurface
+sumi-ios/Integrations/   — EventKit, Contacts, Reminders, Notes, Mail tools
+sumi-ios/UI/             — Settings only (SwiftUI)
+sumi-ios/Workers/        — Cloudflare Worker JS (separate subfolder)
 
 ## Hard rules — never violate
 - NEVER store API keys in code or UserDefaults. Keychain only.
@@ -51,8 +54,8 @@ Sumi/Workers/        — Cloudflare Worker JS (separate subfolder)
 - episodic:  last 48h interactions and decisions
 
 ## Build commands
-- Build:  xcodebuild build -scheme Sumi -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
-- Test:   xcodebuild test -scheme SumiTests
+- Build:  xcodebuild build -scheme sumi-ios -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+- Test:   xcodebuild test -scheme sumi-ios -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 - Lint:   swiftlint lint --quiet
 
 ## When Claude gets something wrong, add a rule here:
