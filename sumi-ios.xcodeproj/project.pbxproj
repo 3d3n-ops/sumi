@@ -125,6 +125,7 @@
 			);
 			name = "sumi-ios";
 			packageProductDependencies = (
+				BA7A66002FDA700000F29C50 /* SQLite */,
 			);
 			productName = "sumi-ios";
 			productReference = BA7A65C72FDA6F6E00F29C50 /* sumi-ios.app */;
@@ -208,6 +209,9 @@
 			);
 			mainGroup = BA7A65BE2FDA6F6E00F29C50;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BA7A65FF2FDA700000F29C50 /* XCRemoteSwiftPackageReference "SQLite.swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BA7A65C82FDA6F6E00F29C50 /* Products */;
 			projectDirPath = "";
@@ -575,6 +579,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BA7A65FF2FDA700000F29C50 /* XCRemoteSwiftPackageReference "SQLite.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stephencelis/SQLite.swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.14.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BA7A66002FDA700000F29C50 /* SQLite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BA7A65FF2FDA700000F29C50 /* XCRemoteSwiftPackageReference "SQLite.swift" */;
+			productName = SQLite;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BA7A65BF2FDA6F6E00F29C50 /* Project object */;
 }
