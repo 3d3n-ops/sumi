@@ -142,12 +142,6 @@ actor VectorStore {
         }
     }
 
-    func contains(key: String) throws -> Bool {
-        let blob = Table(blobTableName)
-        let keyExpr = Expression<String>("key")
-        return try db.scalar(blob.filter(keyExpr == key).count) > 0
-    }
-
     // MARK: - Database setup
 
     private static func defaultDatabaseURL() -> URL {
