@@ -9,12 +9,22 @@ import Foundation
 import NaturalLanguage
 import OSLog
 
+/// Abstraction over text embedding so memory components can be tested without
+/// depending on the on-device `NLEmbedding` model, which is not present on CI
+/// simulators. Production uses `EmbeddingService`; tests inject a deterministic stub.
+protocol TextEmbedder: Sendable {
+    func embed(_ text: String) async -> [Float]?
+}
+
 /// Produces 512-dimensional sentence embeddings using on-device `NLEmbedding`.
-actor EmbeddingService {
+actor EmbeddingService: TextEmbedder {
     static let dimension = 512
 
     private let logger = Logger(subsystem: "Eden-Etuk.sumi-ios", category: "EmbeddingService")
     private let embedding: NLEmbedding?
+
+    /// Whether the on-device model loaded. `false` on simulators lacking the asset.
+    var isAvailable: Bool { embedding != nil }
     private var cache: [String: [Float]] = [:]
     private var accessOrder: [String] = []
     private let maxCacheSize = 500

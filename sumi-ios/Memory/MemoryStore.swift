@@ -12,14 +12,14 @@ import SwiftData
 /// Actor-backed memory layer. SwiftData access is marshalled onto the main actor.
 actor MemoryStore {
     private let modelContainer: ModelContainer
-    private let embeddingService: EmbeddingService
+    private let embeddingService: any TextEmbedder
     private let vectorStore: VectorStore
     private let entityExtractor: EntityExtractor
     private let logger = Logger(subsystem: "Eden-Etuk.sumi-ios", category: "MemoryStore")
 
     init(
         modelContainer: ModelContainer,
-        embeddingService: EmbeddingService = EmbeddingService(),
+        embeddingService: any TextEmbedder = EmbeddingService(),
         vectorStore: VectorStore,
         entityExtractor: EntityExtractor = EntityExtractor()
     ) {

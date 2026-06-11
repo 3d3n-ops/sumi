@@ -10,6 +10,27 @@ import SwiftData
 import Testing
 @testable import sumi_ios
 
+/// Deterministic lexical embedder for tests — independent of the on-device
+/// `NLEmbedding` model, which is absent on CI simulators. Shared tokens map to
+/// shared dimensions, so word overlap drives cosine similarity predictably.
+struct DeterministicEmbedder: TextEmbedder {
+    func embed(_ text: String) async -> [Float]? {
+        let tokens = text.lowercased().split { !$0.isLetter && !$0.isNumber }
+        guard !tokens.isEmpty else { return nil }
+
+        var vector = [Float](repeating: 0, count: EmbeddingService.dimension)
+        for token in tokens {
+            var hash: UInt = 5381
+            for byte in token.utf8 { hash = (hash &* 33) &+ UInt(byte) }
+            vector[Int(hash % UInt(vector.count))] += 1
+        }
+
+        let norm = (vector.reduce(0) { $0 + $1 * $1 }).squareRoot()
+        guard norm > 0 else { return nil }
+        return vector.map { $0 / norm }
+    }
+}
+
 struct MemoryStoreTests {
 
     @Test func writeFiveMemoriesSearchReturnsRelevantOne() async throws {
@@ -21,7 +42,11 @@ struct MemoryStoreTests {
         defer { try? FileManager.default.removeItem(at: dbURL) }
 
         let vectorStore = try VectorStore(databaseURL: dbURL, forceFallback: true)
-        let store = MemoryStore(modelContainer: container, vectorStore: vectorStore)
+        let store = MemoryStore(
+            modelContainer: container,
+            embeddingService: DeterministicEmbedder(),
+            vectorStore: vectorStore
+        )
 
         let memories: [(String, MemoryTier)] = [
             ("User prefers oat milk in coffee", .identity),
@@ -57,7 +82,11 @@ struct MemoryStoreTests {
         defer { try? FileManager.default.removeItem(at: dbURL) }
 
         let vectorStore = try VectorStore(databaseURL: dbURL, forceFallback: true)
-        let store = MemoryStore(modelContainer: container, vectorStore: vectorStore)
+        let store = MemoryStore(
+            modelContainer: container,
+            embeddingService: DeterministicEmbedder(),
+            vectorStore: vectorStore
+        )
 
         _ = try await store.write("ephemeral note", tier: .episodic)
 
