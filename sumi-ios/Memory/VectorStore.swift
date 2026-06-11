@@ -237,7 +237,7 @@ actor VectorStore {
             topK
         ) {
             let key = row[0] as? String ?? ""
-            let distance = (row[1] as? Double).map(Float.init) ?? (row[1] as? Float) ?? 0
+            let distance = (row[1] as? Double).map(Float.init) ?? 0
             let score = max(0, 1 - distance)
             results.append((key: key, score: score))
         }

@@ -15,8 +15,12 @@ struct EmbeddingServiceTests {
         let service = EmbeddingService()
         let vector = await service.embed("Sumi remembers interactions about calendar meetings")
 
-        let resolved = try? #require(vector)
-        #expect(resolved?.count == EmbeddingService.dimension)
+        if await service.isAvailable {
+            #expect(vector?.count == EmbeddingService.dimension)
+        } else {
+            // No on-device model on this runner — contract is a graceful nil.
+            #expect(vector == nil)
+        }
     }
 
     @Test func embedCachesRepeatedStrings() async {
@@ -26,8 +30,10 @@ struct EmbeddingServiceTests {
         let first = await service.embed(text)
         let second = await service.embed(text)
 
-        #expect(first != nil)
         #expect(first == second)
+        if await service.isAvailable {
+            #expect(first != nil)
+        }
     }
 
     @Test func emptyStringReturnsNil() async {

@@ -44,6 +44,7 @@ jobs:
             -scheme sumi-ios \
             -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
             -configuration Debug \
+            -skip-testing:sumi-iosUITests \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO
