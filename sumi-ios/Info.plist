@@ -9,7 +9,9 @@
 	<key>NSContactsUsageDescription</key>
 	<string>Sumi looks up the people you mention so it can give you context on your history with them.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Sumi uses speech recognition so you can talk to it through Siri.</string>
+	<string>Sumi uses speech recognition so you can talk to it through Siri and in the app.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Sumi uses the microphone so you can talk to it instead of typing.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

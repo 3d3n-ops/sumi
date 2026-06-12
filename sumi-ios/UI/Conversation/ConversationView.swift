@@ -2,8 +2,9 @@
 //  ConversationView.swift
 //  sumi-ios
 //
-//  The in-app chat surface — a ChatGPT-style transcript with a text composer.
-//  Voice input is added in Phase 2.
+//  The in-app conversation surface — a ChatGPT-style transcript with a text +
+//  voice composer. Voice is push-to-talk (no system wake word exists on iOS);
+//  a one-press launch can drop the user straight into a listening session.
 //
 
 import SwiftUI
@@ -11,6 +12,10 @@ import UIKit
 
 struct ConversationView: View {
     @State private var model = ConversationViewModel()
+    @State private var speech = SpeechRecognizer()
+    @State private var synthesizer = SpeechSynthesizer()
+    @State private var appState = AppState.shared
+    @State private var speakReplies = false
     @FocusState private var inputFocused: Bool
 
     var body: some View {
@@ -18,15 +23,11 @@ struct ConversationView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
-                        if model.messages.isEmpty {
-                            emptyState
-                        }
+                        if model.messages.isEmpty { emptyState }
                         ForEach(model.messages) { message in
                             MessageBubble(message: message).id(message.id)
                         }
-                        if model.isResponding {
-                            TypingIndicator().id(Self.typingID)
-                        }
+                        if model.isResponding { TypingIndicator().id(Self.typingID) }
                     }
                     .padding()
                 }
@@ -34,6 +35,31 @@ struct ConversationView: View {
                 .onChange(of: model.isResponding) { _, _ in scrollToBottom(proxy) }
             }
             composer
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    speakReplies.toggle()
+                    if !speakReplies { synthesizer.stop() }
+                } label: {
+                    Image(systemName: speakReplies ? "speaker.wave.2.fill" : "speaker.slash")
+                }
+                .accessibilityLabel(speakReplies ? "Spoken replies on" : "Spoken replies off")
+            }
+        }
+        .onChange(of: speech.transcript) { _, new in model.input = new }
+        .onChange(of: model.messages.last?.id) { _, _ in speakLatestIfNeeded() }
+        .onChange(of: appState.pendingVoiceSession) { _, pending in
+            if pending {
+                appState.pendingVoiceSession = false
+                startListening()
+            }
+        }
+        .onAppear {
+            if appState.pendingVoiceSession {
+                appState.pendingVoiceSession = false
+                startListening()
+            }
         }
     }
 
@@ -43,7 +69,7 @@ struct ConversationView: View {
         VStack(spacing: 8) {
             Image(systemName: "circle.fill").font(.system(size: 40))
             Text("Talk to Sumi").font(.title3.weight(.semibold))
-            Text("Ask anything, or just say what's on your mind.")
+            Text("Tap the mic and talk, or type below.")
                 .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity).padding(.top, 60)
@@ -51,7 +77,12 @@ struct ConversationView: View {
 
     private var composer: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            TextField("Message Sumi", text: $model.input, axis: .vertical)
+            Button(action: toggleListening) {
+                Image(systemName: speech.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                    .font(.system(size: 30))
+                    .foregroundStyle(speech.isRecording ? Color.red : Color.accentColor)
+            }
+            TextField(speech.isRecording ? "Listening…" : "Message Sumi", text: $model.input, axis: .vertical)
                 .lineLimit(1...5)
                 .padding(.horizontal, 14).padding(.vertical, 9)
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20))
@@ -62,6 +93,32 @@ struct ConversationView: View {
             .disabled(model.input.trimmingCharacters(in: .whitespaces).isEmpty || model.isResponding)
         }
         .padding(.horizontal).padding(.vertical, 8)
+    }
+
+    // MARK: - Voice
+
+    private func toggleListening() {
+        if speech.isRecording {
+            speech.stop()
+            model.send()
+        } else {
+            startListening()
+        }
+    }
+
+    private func startListening() {
+        synthesizer.stop()
+        inputFocused = false
+        Task {
+            await speech.requestAuthorization()
+            guard speech.isAuthorized else { return }
+            try? speech.start()
+        }
+    }
+
+    private func speakLatestIfNeeded() {
+        guard speakReplies, let last = model.messages.last, last.role == .sumi else { return }
+        synthesizer.speak(last.text)
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
