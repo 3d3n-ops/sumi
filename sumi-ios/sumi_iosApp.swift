@@ -13,19 +13,9 @@ import EventKit
 struct sumi_iosApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-            MemoryEntry.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    /// Shared services (App Group store, memory, router) — the same instances
+    /// Siri intents and background tasks use.
+    private let environment = SumiEnvironment.shared
 
     var body: some Scene {
         WindowGroup {
@@ -34,20 +24,15 @@ struct sumi_iosApp: App {
                     configureProactive()
                 }
         }
-        .modelContainer(sharedModelContainer)
+        .modelContainer(environment.modelContainer)
     }
 
-    /// Builds the proactive engine and wires it into the BGTask handler, and
-    /// pre-computes the morning brief cache for this foreground session.
+    /// Wires the proactive engine into the BGTask handler and pre-computes the
+    /// morning brief cache for this foreground session.
     @MainActor
     private func configureProactive() {
-        guard let vectorStore = try? VectorStore() else { return }
-        let memory = MemoryStore(
-            modelContainer: sharedModelContainer,
-            vectorStore: vectorStore
-        )
-        let router = LLMRouter()
-        let brief = MorningBriefTrigger(router: router)
+        let memory = environment.memory
+        let brief = MorningBriefTrigger(router: environment.router)
         let engine = ProactiveEngine(memory: memory, triggers: [brief])
         BackgroundTaskCoordinator.shared.configure(engine: engine)
 

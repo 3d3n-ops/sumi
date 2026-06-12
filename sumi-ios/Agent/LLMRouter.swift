@@ -51,20 +51,28 @@ actor LLMRouter {
     /// `context` is read on the main actor (MemoryEntry is a SwiftData model and
     /// not Sendable) before any cross-actor work happens.
     func respond(query: String, context: [MemoryEntry], image: Data? = nil) async -> String {
+        // MemoryEntry is a non-Sendable SwiftData model: read its content on the
+        // main actor and hand the actor only the resulting strings.
         let contextLines = await MainActor.run {
             context.prefix(5).map { $0.content }
         }
+        return await respond(query: query, contextStrings: contextLines, image: image)
+    }
 
-        let complexity = Self.estimateComplexity(query: query, contextCount: contextLines.count)
+    /// Variant taking already-extracted, `Sendable` context strings. App Intents
+    /// resolve `MemoryEntry.content` on the main actor first, then call this to
+    /// stay within strict concurrency.
+    func respond(query: String, contextStrings: [String], image: Data? = nil) async -> String {
+        let complexity = Self.estimateComplexity(query: query, contextCount: contextStrings.count)
         let routeType = route(query: query, hasImage: image != nil, complexity: complexity)
 
         switch routeType {
         case .onDevice:
-            return await onDeviceResponse(query: query, context: contextLines)
+            return await onDeviceResponse(query: query, context: contextStrings)
         case .cloudSonnet:
-            return await sonnetResponse(query: query, context: contextLines)
+            return await sonnetResponse(query: query, context: contextStrings)
         case .cloudVision:
-            return await visionResponse(query: query, context: contextLines, image: image)
+            return await visionResponse(query: query, context: contextStrings, image: image)
         }
     }
 
