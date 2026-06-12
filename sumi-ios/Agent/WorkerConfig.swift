@@ -18,7 +18,7 @@ enum WorkerConfig {
     /// After `wrangler deploy`, paste the printed `*.workers.dev` URL here, e.g.
     ///   static let defaultWorkerURL: String? = "https://sumi-worker.you.workers.dev"
     /// Leave `nil` to require configuration via the Connection screen instead.
-    static let defaultWorkerURL: String? = nil
+    static let defaultWorkerURL: String? = "https://sumi-worker.edens-stuff.workers.dev"
 
     /// Effective Worker URL: a per-device Keychain override if present, else the
     /// baked-in default above.

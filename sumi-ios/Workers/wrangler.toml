@@ -15,7 +15,7 @@ APNS_HOST = "api.push.apple.com"   # TestFlight/App Store use prod APNs
 # then paste the printed id below.
 [[kv_namespaces]]
 binding = "DEVICE_TOKENS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "a642ac328a79422681d2d8be8e685cd8"
 
 # Silent-push schedule. Cloudflare cron is UTC and does NOT observe DST.
 # Target: 6:45am and 3:00pm US Central.
