@@ -110,15 +110,38 @@ actor LLMRouter {
 
     // MARK: - Prompt assembly
 
-    /// Spoken-quality system guidance shared by every path.
+    /// Spoken-quality system guidance for Siri intents (terse, no markdown).
     static let systemGuidance =
         "You are Sumi, a personal assistant. Reply in one or two short spoken sentences. " +
         "No markdown, no bullets, no headers. Be conversational and concise."
 
+    /// Conversational guidance for the in-app chat surface — fuller than the
+    /// spoken style, but still plain text (the chat renders plain strings).
+    static let conversationalGuidance =
+        "You are Sumi, a warm, concise personal assistant having a chat with the user. " +
+        "Answer helpfully in a few short sentences. Use the user's remembered context when relevant. " +
+        "Reply in plain conversational text — no markdown headers, tables, or bullet lists."
+
     static let fallback = "I couldn't reach my assistant just now. I'll try again shortly."
 
-    static func assemblePrompt(query: String, context: [String]) -> String {
-        var parts: [String] = [systemGuidance]
+    /// In-app chat reply. Richer than `respond` (which is tuned for spoken Siri
+    /// output): prefers the cloud reasoning path, falls back to on-device, and
+    /// never throws so the chat UI degrades gracefully.
+    func converse(query: String, context: [String]) async -> String {
+        let messages = Self.assembleMessages(query: query, context: context, guidance: Self.conversationalGuidance)
+        do {
+            return try await worker.completions(messages: messages, model: Self.sonnetModel)
+        } catch {
+            let prompt = Self.assemblePrompt(query: query, context: context, guidance: Self.conversationalGuidance)
+            if await onDevice.isAvailable, let reply = await onDevice.respond(to: prompt) {
+                return reply
+            }
+            return Self.fallback
+        }
+    }
+
+    static func assemblePrompt(query: String, context: [String], guidance: String = systemGuidance) -> String {
+        var parts: [String] = [guidance]
         if !context.isEmpty {
             parts.append("Here's what I remember: " + context.joined(separator: " "))
         }
@@ -126,9 +149,9 @@ actor LLMRouter {
         return parts.joined(separator: "\n")
     }
 
-    static func assembleMessages(query: String, context: [String]) -> [[String: String]] {
+    static func assembleMessages(query: String, context: [String], guidance: String = systemGuidance) -> [[String: String]] {
         var messages: [[String: String]] = [
-            ["role": "system", "content": systemGuidance],
+            ["role": "system", "content": guidance],
         ]
         if !context.isEmpty {
             messages.append([
