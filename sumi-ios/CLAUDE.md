@@ -3,11 +3,12 @@
 
 ## Identity
 Sumi is a proactive-first personal agent for iOS 26+.
-It surfaces to the user — the user does not open it.
-The only UI is a minimal Settings screen.
+It surfaces proactively via Siri and notifications — the user doesn't have to open it.
+It ALSO has an opt-in conversation surface (voice + text, ChatGPT-style) the user can
+invoke directly, plus a minimal Settings screen.
 
 ## Stack
-iOS 26+, Swift 6.1, SwiftUI (settings only)
+iOS 26+, Swift 6.1, SwiftUI (conversation surface + settings)
 Xcode 26.3, XcodeBuildMCP wired for terminal builds
 SPM dependencies: SQLite.swift (for sqlite-vec), swift-markdown-ui
 
@@ -20,12 +21,13 @@ sumi-ios/Agent/          — LLMRouter, ReAct loop, tool registry
 sumi-ios/Memory/         — SwiftData models, EmbeddingService, MemoryStore
 sumi-ios/Proactive/      — BGTask engine, trigger types, ProactiveSurface
 sumi-ios/Integrations/   — EventKit, Contacts, Reminders, Notes, Mail tools
-sumi-ios/UI/             — Settings only (SwiftUI)
+sumi-ios/UI/             — Conversation surface + Settings (SwiftUI)
 sumi-ios/Workers/        — Cloudflare Worker JS (separate subfolder)
 
 ## Hard rules — never violate
 - NEVER store API keys in code or UserDefaults. Keychain only.
-- NEVER show UI the user must open. Surfaces via notification only.
+- Proactive features surface via notification only — never require opening the app.
+  (The opt-in conversation surface is the one screen the user invokes directly.)
 - ALL LLM calls route through LLMRouter — never call APIs directly.
 - EVERY memory write runs entity extraction before storing.
 - BGTask handlers must complete within 25 seconds total.
