@@ -15,7 +15,7 @@ struct ContextualReminderIntent: AppIntent {
     static let description = IntentDescription("Create a reminder, enriched with what Sumi remembers about it.")
     static let openAppWhenRun = false
 
-    @Parameter(title: "What to be reminded about")
+    @Parameter(title: "What to be reminded about", requestValueDialog: "What should I remind you about?")
     var topic: String
 
     @Parameter(title: "When")

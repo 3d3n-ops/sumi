@@ -13,7 +13,7 @@ struct SearchMemoryIntent: AppIntent {
     static let description = IntentDescription("Ask Sumi what you said or what it remembers about something.")
     static let openAppWhenRun = false
 
-    @Parameter(title: "What to look for")
+    @Parameter(title: "What to look for", requestValueDialog: "What would you like me to recall?")
     var query: String
 
     func perform() async throws -> some IntentResult & ProvidesDialog {

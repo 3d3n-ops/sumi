@@ -16,7 +16,7 @@ struct ContactSummaryIntent: AppIntent {
     static let description = IntentDescription("Ask Sumi about your history and upcoming plans with someone.")
     static let openAppWhenRun = false
 
-    @Parameter(title: "Person")
+    @Parameter(title: "Person", requestValueDialog: "Who do you want to know about?")
     var personName: String
 
     func perform() async throws -> some IntentResult & ProvidesDialog {

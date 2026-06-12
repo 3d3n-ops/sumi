@@ -24,8 +24,8 @@ struct SumiShortcutsProvider: AppShortcutsProvider {
         AppShortcut(
             intent: SearchMemoryIntent(),
             phrases: [
-                "Ask \(.applicationName) what I said about \(\.$query)",
-                "Ask \(.applicationName) to recall \(\.$query)",
+                "Ask \(.applicationName) to recall something",
+                "Ask \(.applicationName) what I told it",
             ],
             shortTitle: "Recall",
             systemImageName: "brain"
@@ -33,7 +33,7 @@ struct SumiShortcutsProvider: AppShortcutsProvider {
         AppShortcut(
             intent: ContextualReminderIntent(),
             phrases: [
-                "Ask \(.applicationName) to remind me about \(\.$topic)",
+                "Ask \(.applicationName) to remind me",
             ],
             shortTitle: "Remind Me",
             systemImageName: "checklist"
@@ -41,8 +41,8 @@ struct SumiShortcutsProvider: AppShortcutsProvider {
         AppShortcut(
             intent: ContactSummaryIntent(),
             phrases: [
-                "Ask \(.applicationName) about my history with \(\.$personName)",
-                "Ask \(.applicationName) about \(\.$personName)",
+                "Ask \(.applicationName) about my history with someone",
+                "Ask \(.applicationName) about a person",
             ],
             shortTitle: "Person History",
             systemImageName: "person.crop.circle"
