@@ -17,7 +17,11 @@ APNS_HOST = "api.push.apple.com"   # TestFlight/App Store use prod APNs
 binding = "DEVICE_TOKENS"
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
-# Silent-push schedule. NOTE: cron is UTC — adjust these for your timezone.
-# Example below ≈ 6:45am and 3:00pm US Eastern (EDT, UTC-4):
+# Silent-push schedule. Cloudflare cron is UTC and does NOT observe DST.
+# Target: 6:45am and 3:00pm US Central.
+#   - CDT (Mar–Nov, UTC-5, IN EFFECT NOW):  11:45 and 20:00 UTC  ← set below
+#   - CST (Nov–Mar, UTC-6):                 12:45 and 21:00 UTC
+# Flip to the CST values (45 12 / 0 21) at the November DST change, or accept a
+# 1-hour drift.
 [triggers]
-crons = ["45 10 * * *", "0 19 * * *"]
+crons = ["45 11 * * *", "0 20 * * *"]
