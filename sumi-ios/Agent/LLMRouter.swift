@@ -132,12 +132,27 @@ actor LLMRouter {
         do {
             return try await worker.completions(messages: messages, model: Self.sonnetModel)
         } catch {
+            // Worker failed — try on-device before giving up.
             let prompt = Self.assemblePrompt(query: query, context: context, guidance: Self.conversationalGuidance)
             if await onDevice.isAvailable, let reply = await onDevice.respond(to: prompt) {
                 return reply
             }
-            return Self.fallback
+            return Self.fallback(for: error)
         }
+    }
+
+    /// Diagnostic fallback for the chat surface: names the concrete failure so it
+    /// can be seen on-device (TestFlight) without attaching a debugger.
+    static func fallback(for error: Error) -> String {
+        let reason: String
+        switch error as? SumiError {
+        case .noWorkerURL: reason = "no Worker URL is configured"
+        case .invalidWorkerURL: reason = "the Worker URL is invalid"
+        case .workerHTTPStatus(let code): reason = "the server returned \(code)"
+        case .malformedResponse: reason = "the response couldn't be read"
+        case .onDeviceModelUnavailable, .none: reason = (error as NSError).localizedDescription
+        }
+        return "I couldn't reach my assistant just now (\(reason)). I'll try again shortly."
     }
 
     static func assemblePrompt(query: String, context: [String], guidance: String = systemGuidance) -> String {
