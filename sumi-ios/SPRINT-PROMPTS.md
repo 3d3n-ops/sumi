@@ -646,6 +646,35 @@ Run final pre-submission checks for Sumi App Store submission.
 Report any issues found. Fix each before archiving.
 ```
 
+### Prompt 6.4 — Backend Auth Hardening (before launch)
+Goal: replace the interim Worker config (manually pasted URL + one shared
+secret) with a baked-in endpoint and real per-user auth. One product-wide
+OpenRouter key serves every user, so the bill is the attack surface —
+per-user identity is what makes rate limiting and abuse caps possible.
+
+```
+Harden the Sumi Worker auth before real users.
+
+App side:
+1. Bake the Worker URL into the app as a non-secret build config
+   (xcconfig / Info.plist value) instead of a Keychain paste. Keep a
+   debug-only override field; remove the Connection screen from release.
+2. Add Sign in with Apple. On first launch, obtain a per-user identity
+   token; exchange it with the Worker for a Sumi session token stored in
+   the Keychain. Send that token as Authorization: Bearer on every call.
+
+Worker side:
+3. Verify the Sign in with Apple identity token against Apple's public
+   keys; mint a signed session JWT tied to a user id.
+4. Per-user rate limiting + monthly cost cap in KV/D1 — reject or degrade
+   to on-device when a user exceeds their budget.
+5. Retire the single shared SUMI_APP_SECRET once per-user auth is live.
+
+Why: the API key never ships in the app (it lives only in the Worker),
+but a single shared secret baked into every install can be extracted and
+used to burn your OpenRouter credits. Per-user auth closes that.
+```
+
 ---
 
 ## REFERENCE: COMPLETE SPRINT MAP
@@ -659,6 +688,7 @@ Report any issues found. Fix each before archiving.
 | 4 — Agent         | It follows up        | Commitment tracking, FollowUpTrigger         | Update      |
 | 5 — Integrations  | Genuinely smart      | Mail, Messages, Notes, MeetingPrep           | Update      |
 | 6 — Polish        | App Store ready      | Onboarding, Settings, Privacy Manifest       | App Store   |
+| 6.4 — Auth        | Abuse-proof backend  | Baked URL, Sign in with Apple, per-user caps | App Store   |
 
 ## MONTHLY COST AT LAUNCH
 
