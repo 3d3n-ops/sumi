@@ -2,7 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Xcode 16+/26 spelling. If export errors on this value, try "app-store". -->
 	<key>method</key>
 	<string>app-store-connect</string>
 	<!-- Upload straight to App Store Connect / TestFlight during export. -->
@@ -10,8 +9,16 @@
 	<string>upload</string>
 	<key>teamID</key>
 	<string>U97LL9V6WP</string>
+	<!-- Explicit manual signing — matches the cert + profile imported in CI. -->
 	<key>signingStyle</key>
-	<string>automatic</string>
+	<string>manual</string>
+	<key>signingCertificate</key>
+	<string>Apple Distribution</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>Eden-Etuk.sumi-ios</key>
+		<string>Sumi App Store CI</string>
+	</dict>
 	<key>uploadSymbols</key>
 	<true/>
 </dict>
