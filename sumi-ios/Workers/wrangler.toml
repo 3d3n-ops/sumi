@@ -2,9 +2,11 @@ name = "sumi-worker"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 
-# Public, non-secret config. Secrets (ANTHROPIC_API_KEY, SUMI_APP_SECRET,
+# Public, non-secret config. Secrets (OPENROUTER_API_KEY, SUMI_APP_SECRET,
 # APNS_AUTH_KEY, APNS_KEY_ID, APNS_TEAM_ID) are set with `wrangler secret put`.
 [vars]
+# Pick any model slug from openrouter.ai/models (verify it's current).
+OPENROUTER_MODEL = "anthropic/claude-sonnet-4.6"
 APNS_TOPIC = "Eden-Etuk.sumi-ios"
 APNS_HOST = "api.push.apple.com"   # TestFlight/App Store use prod APNs
 

@@ -1,26 +1,28 @@
 // Sumi Cloudflare Worker
 //
 // Two jobs:
-//   1. LLM proxy — /completions and /vision call Anthropic with the key that
-//      lives only here (never in the app). The app talks only to this Worker.
+//   1. LLM proxy — /completions and /vision call OpenRouter (OpenAI-compatible)
+//      with the key that lives only here (never in the app). The app talks only
+//      to this Worker.
 //   2. Proactive push — /register stores APNs device tokens; the cron-driven
 //      scheduled() handler sends a silent (content-available) push to wake the
 //      app's proactive engine.
 //
 // Secrets (set via `wrangler secret put`):
-//   ANTHROPIC_API_KEY   - Anthropic API key (sk-ant-...)
+//   OPENROUTER_API_KEY  - OpenRouter API key (sk-or-...)
 //   SUMI_APP_SECRET     - shared bearer the app sends; gates every request
 //   APNS_AUTH_KEY       - APNs auth key .p8 contents (PEM)
 //   APNS_KEY_ID         - 10-char APNs key id
 //   APNS_TEAM_ID        - Apple Developer team id (U97LL9V6WP)
 // Vars (in wrangler.toml):
+//   OPENROUTER_MODEL    - model slug, e.g. anthropic/claude-sonnet-4.6
 //   APNS_TOPIC          - bundle id (Eden-Etuk.sumi-ios)
 //   APNS_HOST           - api.push.apple.com (prod) or api.sandbox.push.apple.com
 // Bindings:
 //   DEVICE_TOKENS       - KV namespace storing registered device tokens
 
-const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_VERSION = "2023-06-01";
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const DEFAULT_MODEL = "anthropic/claude-sonnet-4.6";
 const MAX_TOKENS = 512;
 
 export default {
@@ -69,68 +71,52 @@ function authorized(request, env) {
 
 async function handleCompletions(request, env) {
   const body = await request.json();
-  const model = body.model || "claude-sonnet-4-6";
-  const { system, messages } = splitMessages(body.messages || []);
-  const text = await callAnthropic(env, { model, system, messages });
+  // OpenAI-compatible: system messages stay in the array as-is.
+  let messages = body.messages || [];
+  if (messages.length === 0) {
+    messages = [{ role: "user", content: "(no input)" }];
+  }
+  const text = await callOpenRouter(env, messages);
   return json({ text });
 }
 
 async function handleVision(request, env) {
   const body = await request.json();
-  const model = body.model || "claude-sonnet-4-6";
   const mediaType = body.mediaType || "image/png";
   const messages = [
     {
       role: "user",
       content: [
-        { type: "image", source: { type: "base64", media_type: mediaType, data: body.image } },
         { type: "text", text: body.prompt || "Describe this image." },
+        { type: "image_url", image_url: { url: `data:${mediaType};base64,${body.image}` } },
       ],
     },
   ];
-  const text = await callAnthropic(env, { model, system: undefined, messages });
+  const text = await callOpenRouter(env, messages);
   return json({ text });
 }
 
-// Anthropic uses a top-level `system` string, not a system role in messages, so
-// pull any system entries out of the app's message array.
-function splitMessages(input) {
-  const systemParts = [];
-  const messages = [];
-  for (const m of input) {
-    if (m.role === "system") {
-      systemParts.push(m.content);
-    } else {
-      messages.push({ role: m.role, content: m.content });
-    }
-  }
-  if (messages.length === 0) {
-    messages.push({ role: "user", content: "(no input)" });
-  }
-  return { system: systemParts.join("\n") || undefined, messages };
-}
-
-async function callAnthropic(env, { model, system, messages }) {
-  const payload = { model, max_tokens: MAX_TOKENS, messages };
-  if (system) payload.system = system;
-
-  const resp = await fetch(ANTHROPIC_URL, {
+async function callOpenRouter(env, messages) {
+  const model = env.OPENROUTER_MODEL || DEFAULT_MODEL;
+  const resp = await fetch(OPENROUTER_URL, {
     method: "POST",
     headers: {
-      "x-api-key": env.ANTHROPIC_API_KEY,
-      "anthropic-version": ANTHROPIC_VERSION,
+      authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
       "content-type": "application/json",
+      // Optional ranking/attribution headers OpenRouter recommends.
+      "HTTP-Referer": env.OPENROUTER_REFERER || "https://sumi.app",
+      "X-Title": "Sumi",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ model, max_tokens: MAX_TOKENS, messages }),
   });
 
   if (!resp.ok) {
     const detail = await resp.text();
-    throw new Error(`anthropic ${resp.status}: ${detail.slice(0, 300)}`);
+    throw new Error(`openrouter ${resp.status}: ${detail.slice(0, 300)}`);
   }
   const data = await resp.json();
-  const block = (data.content || []).find((c) => c.type === "text");
-  return block ? block.text : "";
+  const choice = (data.choices || [])[0];
+  return (choice && choice.message && choice.message.content) || "";
 }
 
 // MARK: - Device registration
