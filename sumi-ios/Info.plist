@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Sumi reads your calendar to brief you before meetings and prep you for who you're meeting.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Sumi creates reminders for the things you tell it you need to follow up on.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Sumi looks up the people you mention so it can give you context on your history with them.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Sumi uses speech recognition so you can talk to it through Siri.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

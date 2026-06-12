@@ -2,60 +2,32 @@
 //  ContentView.swift
 //  sumi-ios
 //
-//  Created by olumami etuk on 6/10/26.
+//  Placeholder root screen. Sumi is proactive-first — it surfaces through
+//  notifications and Siri, not by being opened. The real (minimal) Settings
+//  screen lands in Sprint 6; until then this just reassures the user the app
+//  is running in the background.
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+        VStack(spacing: 16) {
+            Image(systemName: "circle.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(.primary)
+            Text("Sumi")
+                .font(.largeTitle.weight(.semibold))
+            Text("Sumi works in the background. You'll hear from it through Siri and notifications — you don't need to open this app.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
         }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
+        .padding()
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
