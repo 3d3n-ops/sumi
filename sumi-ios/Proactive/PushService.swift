@@ -21,7 +21,7 @@ enum PushService {
     /// POSTs the token to the Worker's `/register` endpoint. No-op when the
     /// Worker URL hasn't been configured yet.
     static func register(token: String) async {
-        guard let base = Keychain.string(for: Keychain.workerURLKey),
+        guard let base = WorkerConfig.resolvedWorkerURL(),
               let baseURL = URL(string: base) else {
             logger.debug("No worker URL configured; skipping token registration.")
             return

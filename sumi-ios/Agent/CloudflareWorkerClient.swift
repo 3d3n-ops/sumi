@@ -49,7 +49,8 @@ extension WorkerURLProviding {
 /// Default provider backed by the Keychain.
 struct KeychainWorkerURLProvider: WorkerURLProviding {
     func workerURL() -> String? {
-        Keychain.string(for: Keychain.workerURLKey)
+        // Per-device Keychain override, else the baked-in build constant.
+        WorkerConfig.resolvedWorkerURL()
     }
 
     func workerSecret() -> String? {
