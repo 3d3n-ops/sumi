@@ -19,6 +19,9 @@ enum Keychain {
     /// Account key for the Cloudflare Worker base URL.
     static let workerURLKey = "sumi.worker.url"
 
+    /// Account key for the shared bearer secret sent with every Worker request.
+    static let workerSecretKey = "sumi.worker.secret"
+
     /// Reads a string value for `key`, or `nil` if it is not present.
     static func string(for key: String) -> String? {
         let query: [String: Any] = [

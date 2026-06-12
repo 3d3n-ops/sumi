@@ -34,6 +34,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Workers,
 			);
 			target = BA7A65C62FDA6F6E00F29C50 /* sumi-ios */;
 		};
