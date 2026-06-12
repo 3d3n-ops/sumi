@@ -24,13 +24,17 @@ struct ContentView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
-                Section("Connection") {
-                    TextField("Worker URL", text: $workerURL)
+                Section {
+                    TextField("Worker URL (override)", text: $workerURL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
                     SecureField("Shared secret", text: $workerSecret)
                     Button("Save", action: save)
+                } header: {
+                    Text("Connection")
+                } footer: {
+                    Text("Using: \(WorkerConfig.resolvedWorkerURL() ?? "not configured")")
                 }
             }
             .navigationTitle("Sumi")
