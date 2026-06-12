@@ -1,0 +1,142 @@
+//
+//  LLMRouter.swift
+//  sumi-ios
+//
+//  Single entry point for every LLM call. Decides on-device vs cloud, assembles
+//  the prompt with memory context, and produces spoken-quality output only.
+//
+
+import Foundation
+
+/// Where a given request should be served.
+enum RouteType: Equatable {
+    /// Apple on-device model (fast, free) — simple recall / short responses.
+    case onDevice
+    /// Claude Sonnet via the Worker — complex reasoning / drafting.
+    case cloudSonnet
+    /// Claude vision via the Worker — anything involving an image.
+    case cloudVision
+}
+
+/// Routes requests between the on-device model and the cloud (Worker) backends.
+///
+/// Per the hard rules, every LLM call in the app goes through this actor. Output
+/// is always spoken-quality: conversational, short, no markdown or bullets.
+actor LLMRouter {
+    /// Model id for the cloud reasoning path (matches CLAUDE.md).
+    static let sonnetModel = "claude-sonnet-4-6"
+
+    private let onDevice: any OnDeviceModel
+    private let worker: CloudflareWorkerClient
+
+    init(
+        onDevice: any OnDeviceModel = FoundationModelsSession(),
+        worker: CloudflareWorkerClient = CloudflareWorkerClient()
+    ) {
+        self.onDevice = onDevice
+        self.worker = worker
+    }
+
+    /// Pure routing decision. `complexity` is a 0...1 estimate of reasoning effort.
+    nonisolated func route(query: String, hasImage: Bool, complexity: Double) -> RouteType {
+        if hasImage { return .cloudVision }
+        if complexity < 0.4 { return .onDevice }
+        return .cloudSonnet
+    }
+
+    /// Assembles a prompt from `query` + memory `context`, routes it, and returns
+    /// spoken-quality text. Never throws — degrades to a short spoken fallback so
+    /// callers (notifications, intents) never crash.
+    ///
+    /// `context` is read on the main actor (MemoryEntry is a SwiftData model and
+    /// not Sendable) before any cross-actor work happens.
+    func respond(query: String, context: [MemoryEntry], image: Data? = nil) async -> String {
+        let contextLines = await MainActor.run {
+            context.prefix(5).map { $0.content }
+        }
+
+        let complexity = Self.estimateComplexity(query: query, contextCount: contextLines.count)
+        let routeType = route(query: query, hasImage: image != nil, complexity: complexity)
+
+        switch routeType {
+        case .onDevice:
+            return await onDeviceResponse(query: query, context: contextLines)
+        case .cloudSonnet:
+            return await sonnetResponse(query: query, context: contextLines)
+        case .cloudVision:
+            return await visionResponse(query: query, context: contextLines, image: image)
+        }
+    }
+
+    // MARK: - Backends
+
+    private func onDeviceResponse(query: String, context: [String]) async -> String {
+        let prompt = Self.assemblePrompt(query: query, context: context)
+        if await onDevice.isAvailable, let reply = await onDevice.respond(to: prompt) {
+            return reply
+        }
+        // On-device unavailable / declined — fall back to the cloud reasoning path.
+        return await sonnetResponse(query: query, context: context)
+    }
+
+    private func sonnetResponse(query: String, context: [String]) async -> String {
+        let messages = Self.assembleMessages(query: query, context: context)
+        do {
+            return try await worker.completions(messages: messages, model: Self.sonnetModel)
+        } catch {
+            return Self.fallback
+        }
+    }
+
+    private func visionResponse(query: String, context: [String], image: Data?) async -> String {
+        guard let image else {
+            return await sonnetResponse(query: query, context: context)
+        }
+        let prompt = Self.assemblePrompt(query: query, context: context)
+        do {
+            return try await worker.vision(imageBase64: image.base64EncodedString(), prompt: prompt)
+        } catch {
+            return Self.fallback
+        }
+    }
+
+    // MARK: - Prompt assembly
+
+    /// Spoken-quality system guidance shared by every path.
+    static let systemGuidance =
+        "You are Sumi, a personal assistant. Reply in one or two short spoken sentences. " +
+        "No markdown, no bullets, no headers. Be conversational and concise."
+
+    static let fallback = "I couldn't reach my assistant just now. I'll try again shortly."
+
+    static func assemblePrompt(query: String, context: [String]) -> String {
+        var parts: [String] = [systemGuidance]
+        if !context.isEmpty {
+            parts.append("Here's what I remember: " + context.joined(separator: " "))
+        }
+        parts.append("Request: " + query)
+        return parts.joined(separator: "\n")
+    }
+
+    static func assembleMessages(query: String, context: [String]) -> [[String: String]] {
+        var messages: [[String: String]] = [
+            ["role": "system", "content": systemGuidance],
+        ]
+        if !context.isEmpty {
+            messages.append([
+                "role": "system",
+                "content": "Relevant memory: " + context.joined(separator: " "),
+            ])
+        }
+        messages.append(["role": "user", "content": query])
+        return messages
+    }
+
+    /// Rough complexity heuristic for routing when a caller doesn't supply one.
+    static func estimateComplexity(query: String, contextCount: Int) -> Double {
+        let wordCount = query.split { $0 == " " }.count
+        let lengthFactor = min(Double(wordCount) / 40.0, 1.0)
+        let contextFactor = min(Double(contextCount) / 5.0, 1.0)
+        return min(0.6 * lengthFactor + 0.4 * contextFactor, 1.0)
+    }
+}

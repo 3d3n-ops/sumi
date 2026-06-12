@@ -5,6 +5,13 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.sumi.proactive</string>
+		<string>com.sumi.maintenance</string>
 	</array>
 </dict>
 </plist>
