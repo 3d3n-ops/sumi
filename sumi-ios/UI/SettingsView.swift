@@ -28,6 +28,8 @@ struct SettingsView: View {
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
                     SecureField("Shared secret", text: $workerSecret)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                     Button("Save", action: save)
                 } header: {
                     Text("Connection")
