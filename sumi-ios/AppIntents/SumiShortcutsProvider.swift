@@ -12,6 +12,16 @@ import AppIntents
 struct SumiShortcutsProvider: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
+            intent: OpenConversationIntent(),
+            phrases: [
+                "Talk to \(.applicationName)",
+                "Open \(.applicationName)",
+                "Chat with \(.applicationName)",
+            ],
+            shortTitle: "Talk to Sumi",
+            systemImageName: "waveform"
+        )
+        AppShortcut(
             intent: MorningBriefingIntent(),
             phrases: [
                 "Ask \(.applicationName) what's my day",
