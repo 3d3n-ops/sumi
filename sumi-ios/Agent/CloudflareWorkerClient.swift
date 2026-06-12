@@ -38,12 +38,22 @@ struct URLSessionWorkerTransport: WorkerTransport {
 /// can throw `SumiError.noWorkerURL` instead of crashing.
 protocol WorkerURLProviding: Sendable {
     func workerURL() -> String?
+    /// Shared bearer secret sent as `Authorization`. Defaults to `nil` (no auth).
+    func workerSecret() -> String?
+}
+
+extension WorkerURLProviding {
+    func workerSecret() -> String? { nil }
 }
 
 /// Default provider backed by the Keychain.
 struct KeychainWorkerURLProvider: WorkerURLProviding {
     func workerURL() -> String? {
         Keychain.string(for: Keychain.workerURLKey)
+    }
+
+    func workerSecret() -> String? {
+        Keychain.string(for: Keychain.workerSecretKey)
     }
 }
 
@@ -96,6 +106,9 @@ actor CloudflareWorkerClient {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let secret = urlProvider.workerSecret() {
+            request.setValue("Bearer \(secret)", forHTTPHeaderField: "Authorization")
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
 
         let (data, status) = try await transport.send(request)

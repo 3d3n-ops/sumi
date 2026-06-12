@@ -1,0 +1,21 @@
+name = "sumi-worker"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Public, non-secret config. Secrets (ANTHROPIC_API_KEY, SUMI_APP_SECRET,
+# APNS_AUTH_KEY, APNS_KEY_ID, APNS_TEAM_ID) are set with `wrangler secret put`.
+[vars]
+APNS_TOPIC = "Eden-Etuk.sumi-ios"
+APNS_HOST = "api.push.apple.com"   # TestFlight/App Store use prod APNs
+
+# Stores registered APNs device tokens. Create with:
+#   wrangler kv namespace create DEVICE_TOKENS
+# then paste the printed id below.
+[[kv_namespaces]]
+binding = "DEVICE_TOKENS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Silent-push schedule. NOTE: cron is UTC — adjust these for your timezone.
+# Example below ≈ 6:45am and 3:00pm US Eastern (EDT, UTC-4):
+[triggers]
+crons = ["45 10 * * *", "0 19 * * *"]
