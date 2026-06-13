@@ -15,34 +15,117 @@ actor MemoryStore {
     private let embeddingService: any TextEmbedder
     private let vectorStore: VectorStore
     private let entityExtractor: EntityExtractor
+    private let commitmentExtractor: CommitmentExtractor?
     private let logger = Logger(subsystem: "Eden-Etuk.sumi-ios", category: "MemoryStore")
+
+    /// Reserved entity tag marking a `MemoryEntry` that represents a commitment.
+    static let commitmentTag = "__commitment__"
+    /// Reserved tag added when a commitment is satisfied.
+    static let resolvedTag = "__commitment_resolved__"
+    /// Prefix for the reserved tag carrying a commitment's target person.
+    static let targetPrefix = "__commitment_target__:"
 
     init(
         modelContainer: ModelContainer,
         embeddingService: any TextEmbedder = EmbeddingService(),
         vectorStore: VectorStore,
-        entityExtractor: EntityExtractor = EntityExtractor()
+        entityExtractor: EntityExtractor = EntityExtractor(),
+        commitmentExtractor: CommitmentExtractor? = nil
     ) {
         self.modelContainer = modelContainer
         self.embeddingService = embeddingService
         self.vectorStore = vectorStore
         self.entityExtractor = entityExtractor
+        self.commitmentExtractor = commitmentExtractor
     }
 
     /// Writes a memory: entity extraction → embedding → vector insert → SwiftData save.
+    /// After a successful write, mines the content for commitments in the background.
     func write(_ content: String, tier: MemoryTier) async throws -> MemoryEntry {
         let entities = await entityExtractor.extract(from: content)
+        let entry = try await persist(content: content, tier: tier, id: UUID(), timestamp: .now, entities: entities)
+        scheduleCommitmentExtraction(from: content, tier: tier)
+        return entry
+    }
+
+    /// Persists a commitment as a tagged `.context` memory so the proactive layer
+    /// can find and follow up on it later. Does not re-run commitment extraction,
+    /// so it is safe to call from the extraction path without recursing.
+    @discardableResult
+    func writeCommitment(_ commitment: Commitment) async throws -> MemoryEntry {
+        var entities = await entityExtractor.extract(from: commitment.text)
+        entities.append(Self.commitmentTag)
+        if let person = commitment.targetPerson, !person.isEmpty {
+            entities.append(Self.targetPrefix + person)
+        }
+        if commitment.isResolved {
+            entities.append(Self.resolvedTag)
+        }
+        return try await persist(
+            content: commitment.text,
+            tier: .context,
+            id: commitment.id,
+            timestamp: commitment.createdAt,
+            entities: entities
+        )
+    }
+
+    /// All unresolved commitments, reconstructed from their backing memories.
+    func openCommitments() async throws -> [Commitment] {
+        try await MainActor.run {
+            let all = try modelContainer.mainContext.fetch(FetchDescriptor<MemoryEntry>())
+            return all.compactMap { Self.commitment(from: $0) }.filter { !$0.isResolved }
+        }
+    }
+
+    /// Marks a commitment resolved by tagging its backing memory. No-op if absent
+    /// or already resolved.
+    func resolveCommitment(_ id: UUID) async throws {
+        try await MainActor.run {
+            guard let entry = try fetchEntry(idString: id.uuidString),
+                  entry.entities.contains(Self.commitmentTag),
+                  !entry.entities.contains(Self.resolvedTag) else {
+                return
+            }
+            entry.entities.append(Self.resolvedTag)
+            try modelContainer.mainContext.save()
+        }
+    }
+
+    /// Reconstructs a `Commitment` from a tagged entry, or `nil` if untagged.
+    @MainActor
+    private static func commitment(from entry: MemoryEntry) -> Commitment? {
+        guard entry.entities.contains(commitmentTag) else { return nil }
+        let target = entry.entities
+            .first { $0.hasPrefix(targetPrefix) }
+            .map { String($0.dropFirst(targetPrefix.count)) }
+        return Commitment(
+            id: entry.id,
+            text: entry.content,
+            createdAt: entry.timestamp,
+            targetPerson: target,
+            isResolved: entry.entities.contains(resolvedTag)
+        )
+    }
+
+    /// Shared write core: embedding → vector insert → SwiftData save.
+    private func persist(
+        content: String,
+        tier: MemoryTier,
+        id: UUID,
+        timestamp: Date,
+        entities: [String]
+    ) async throws -> MemoryEntry {
         guard let vector = await embeddingService.embed(content) else {
             throw MemoryStoreError.embeddingFailed
         }
-
-        let id = UUID()
         let key = id.uuidString
         try await vectorStore.insert(key: key, vector: vector)
 
         return try await MainActor.run {
             let entry = MemoryEntry(
                 id: id,
+                timestamp: timestamp,
                 tier: tier,
                 content: content,
                 entities: entities,
@@ -50,6 +133,21 @@ actor MemoryStore {
             )
             try saveEntry(entry)
             return entry
+        }
+    }
+
+    /// Mines `content` for commitments off the write path so `write` returns
+    /// immediately (the BGTask budget can't absorb a synchronous LLM call). Gated
+    /// to user-interaction (`.episodic`) memories of meaningful length to avoid an
+    /// LLM call on every trivial write. Only the on-device model is free today; on
+    /// the cloud path this costs a call, so keep the gate conservative.
+    private func scheduleCommitmentExtraction(from content: String, tier: MemoryTier) {
+        guard let commitmentExtractor, tier == .episodic, content.count >= 12 else { return }
+        Task {
+            let commitments = await commitmentExtractor.extract(from: content)
+            for commitment in commitments {
+                _ = try? await self.writeCommitment(commitment)
+            }
         }
     }
 

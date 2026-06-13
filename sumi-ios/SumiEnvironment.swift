@@ -32,9 +32,14 @@ final class SumiEnvironment: Sendable {
     private init() {
         let container = Self.makeModelContainer()
         let vectorStore = Self.makeVectorStore()
+        let router = LLMRouter()
         self.modelContainer = container
-        self.router = LLMRouter()
-        self.memory = MemoryStore(modelContainer: container, vectorStore: vectorStore)
+        self.router = router
+        self.memory = MemoryStore(
+            modelContainer: container,
+            vectorStore: vectorStore,
+            commitmentExtractor: CommitmentExtractor(llm: router)
+        )
     }
 
     // MARK: - Construction

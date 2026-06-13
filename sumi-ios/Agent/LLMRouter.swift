@@ -155,6 +155,21 @@ actor LLMRouter {
         return "I couldn't reach my assistant just now (\(reason)). I'll try again shortly."
     }
 
+    /// Raw completion for internal, structured use (e.g. JSON extraction). Unlike
+    /// `respond`/`converse`, this imposes no spoken-quality guidance — the caller
+    /// supplies the full system + user prompt. Prefers the on-device model (free),
+    /// falls back to the cloud reasoning path, and returns `nil` if both fail.
+    func complete(system: String, user: String) async -> String? {
+        if await onDevice.isAvailable, let reply = await onDevice.respond(to: system + "\n\n" + user) {
+            return reply
+        }
+        let messages = [
+            ["role": "system", "content": system],
+            ["role": "user", "content": user],
+        ]
+        return try? await worker.completions(messages: messages, model: Self.sonnetModel)
+    }
+
     static func assemblePrompt(query: String, context: [String], guidance: String = systemGuidance) -> String {
         var parts: [String] = [guidance]
         if !context.isEmpty {
