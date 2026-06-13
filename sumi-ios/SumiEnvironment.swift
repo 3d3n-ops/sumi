@@ -26,6 +26,8 @@ final class SumiEnvironment: Sendable {
     let memory: MemoryStore
     /// The single entry point for every LLM call.
     let router: LLMRouter
+    /// Registered capability tools (calendar, contacts, reminders).
+    let tools: ToolRegistry
 
     private static let logger = Logger(subsystem: "Eden-Etuk.sumi-ios", category: "SumiEnvironment")
 
@@ -40,6 +42,7 @@ final class SumiEnvironment: Sendable {
             vectorStore: vectorStore,
             commitmentExtractor: CommitmentExtractor(llm: router)
         )
+        self.tools = ToolRegistry(tools: [CalendarTool(), ContactsTool(), RemindersTool()])
     }
 
     // MARK: - Construction

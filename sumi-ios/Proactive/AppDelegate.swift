@@ -59,7 +59,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         let env = SumiEnvironment.shared
         let engine = ProactiveEngine(
             memory: env.memory,
-            triggers: [MorningBriefTrigger(router: env.router), FollowUpTrigger()]
+            triggers: [MorningBriefTrigger(router: env.router), FollowUpTrigger(), MeetingPrepTrigger()]
         )
         await engine.evaluate()
         return .newData
