@@ -166,6 +166,8 @@ struct BriefEvent: Sendable, Equatable {
     var title: String
     var hasAttendees: Bool
     var startDate: Date
+    /// Number of attendees, when known (0 otherwise).
+    var attendeeCount: Int = 0
 }
 
 /// Abstraction over fetching today's events so the trigger is testable without
@@ -192,7 +194,8 @@ struct EventKitCalendarProvider: CalendarEventsProviding {
             BriefEvent(
                 title: event.title ?? "Untitled",
                 hasAttendees: (event.attendees?.isEmpty == false),
-                startDate: event.startDate ?? start
+                startDate: event.startDate ?? start,
+                attendeeCount: event.attendees?.count ?? 0
             )
         }
     }
