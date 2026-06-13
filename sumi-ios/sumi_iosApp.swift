@@ -33,7 +33,7 @@ struct sumi_iosApp: App {
     private func configureProactive() {
         let memory = environment.memory
         let brief = MorningBriefTrigger(router: environment.router)
-        let engine = ProactiveEngine(memory: memory, triggers: [brief])
+        let engine = ProactiveEngine(memory: memory, triggers: [brief, FollowUpTrigger()])
         BackgroundTaskCoordinator.shared.configure(engine: engine)
 
         // Pre-compute and cache the brief so a later background run can skip the LLM.
