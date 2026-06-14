@@ -7,16 +7,19 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct PersonalContextView: View {
     var onContinue: () -> Void = {}
     var stepIndex: Int = 3
     var stepCount: Int = 6
 
-    @AppStorage(SumiPrefKey.sourceCalendar) private var calendar = true
+    @AppStorage(SumiPrefKey.sourceCalendar) private var calendar = false
     @AppStorage(SumiPrefKey.sourceMail) private var mail = true
     @AppStorage(SumiPrefKey.sourceContacts) private var contacts = false
     @AppStorage(SumiPrefKey.sourceHealth) private var health = false
+
+    @State private var deniedSource: String?
 
     var body: some View {
         OnboardingScaffold(
@@ -34,18 +37,39 @@ struct PersonalContextView: View {
                     subtitle: "Your schedule and to-dos",
                     isOn: $calendar
                 )
+                .onChange(of: calendar) { _, on in
+                    guard on else { return }
+                    Task {
+                        // The card covers both; require both to call it granted.
+                        let cal = await PermissionsService.requestCalendar()
+                        let rem = await PermissionsService.requestReminders()
+                        calendar = cal && rem
+                        if !(cal && rem) { deniedSource = "Calendar & reminders" }
+                    }
+                }
+
                 SourceCard(
                     tile: IconTile(systemName: "envelope.fill", color: SumiTheme.tileBlue),
                     title: "Mail & messages",
                     subtitle: "Trips, orders, plans",
                     isOn: $mail
                 )
+
                 SourceCard(
                     tile: IconTile(systemName: "person.fill", color: SumiTheme.tileGray),
                     title: "Contacts & relationships",
                     subtitle: "Who's who in your life",
                     isOn: $contacts
                 )
+                .onChange(of: contacts) { _, on in
+                    guard on else { return }
+                    Task {
+                        let granted = await PermissionsService.requestContacts()
+                        contacts = granted
+                        if !granted { deniedSource = "Contacts" }
+                    }
+                }
+
                 SourceCard(
                     tile: IconTile(systemName: "heart.fill", color: SumiTheme.tilePink),
                     title: "Health & routines",
@@ -54,6 +78,20 @@ struct PersonalContextView: View {
                 )
             }
         }
+        .alert("\(deniedSource ?? "That") access is off", isPresented: deniedBinding) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Not now", role: .cancel) {}
+        } message: {
+            Text("Turn it on in Settings whenever you're ready — sumi only reads what you allow.")
+        }
+    }
+
+    private var deniedBinding: Binding<Bool> {
+        Binding(get: { deniedSource != nil }, set: { if !$0 { deniedSource = nil } })
     }
 }
 

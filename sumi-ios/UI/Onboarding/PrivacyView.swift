@@ -41,14 +41,14 @@ struct PrivacyView: View {
                     .font(.largeTitle.weight(.bold))
                     .padding(.top, 8)
 
-                Text("sumi runs on your device. Your life stays on your device.")
+                Text("Your life stays on your device. When sumi needs to think, it uses our private AI service — never your data as training.")
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .padding(.top, 8)
 
                 VStack(alignment: .leading, spacing: 18) {
-                    Promise(title: "Processed on device.", detail: "Requests are handled locally by default.")
-                    Promise(title: "Never sold, never trained on.", detail: "Your data isn't the product.")
+                    Promise(title: "Your data stays on device.", detail: "Memories and context are stored locally, not in the cloud.")
+                    Promise(title: "AI runs in sumi's secure cloud.", detail: "Only what a request needs is sent — never sold, never trained on.")
                     Promise(title: "You're in control.", detail: "Review or erase what sumi remembers, anytime.")
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

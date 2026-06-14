@@ -20,7 +20,7 @@ struct WelcomeView: View {
             stepIndex: stepIndex,
             stepCount: stepCount,
             buttonTitle: "Get started",
-            footnote: "On-device by default · Private",
+            footnote: "Private by design · AI by sumi's secure cloud",
             onContinue: onGetStarted
         ) {
             VStack(spacing: 0) {
