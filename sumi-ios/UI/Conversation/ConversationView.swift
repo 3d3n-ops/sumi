@@ -46,6 +46,20 @@ struct ConversationView: View {
                 }
                 .accessibilityLabel(speakReplies ? "Spoken replies on" : "Spoken replies off")
             }
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 8) {
+                    LivingLightOrb(size: 24)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("sumi").font(.headline)
+                        HStack(spacing: 3) {
+                            Circle().fill(SumiTheme.tileGreen).frame(width: 5, height: 5)
+                            Text("On-device").font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Sumi, on-device")
+            }
         }
         .onChange(of: speech.transcript) { _, new in model.input = new }
         .onChange(of: model.messages.last?.id) { _, _ in speakLatestIfNeeded() }
@@ -55,10 +69,16 @@ struct ConversationView: View {
                 startListening()
             }
         }
+        .onChange(of: appState.pendingQuery) { _, query in
+            if let query { consumePendingQuery(query) }
+        }
         .onAppear {
             if appState.pendingVoiceSession {
                 appState.pendingVoiceSession = false
                 startListening()
+            }
+            if let query = appState.pendingQuery {
+                consumePendingQuery(query)
             }
         }
     }
@@ -66,13 +86,13 @@ struct ConversationView: View {
     private static let typingID = "typing-indicator"
 
     private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "circle.fill").font(.system(size: 40))
-            Text("Talk to Sumi").font(.title3.weight(.semibold))
+        VStack(spacing: 14) {
+            LivingLightOrb(size: 76)
+            Text("Talk to sumi").font(.title3.weight(.semibold))
             Text("Tap the mic and talk, or type below.")
                 .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity).padding(.top, 60)
+        .frame(maxWidth: .infinity).padding(.top, 64)
     }
 
     private var composer: some View {
@@ -106,6 +126,14 @@ struct ConversationView: View {
         }
     }
 
+    /// Submits a query handed off from elsewhere (e.g. an onboarding starter).
+    private func consumePendingQuery(_ query: String) {
+        appState.pendingQuery = nil
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        model.submit(trimmed)
+    }
+
     private func startListening() {
         synthesizer.stop()
         inputFocused = false
@@ -136,18 +164,21 @@ private struct MessageBubble: View {
     let message: ChatMessage
 
     var body: some View {
-        HStack {
-            if message.role == .user { Spacer(minLength: 40) }
+        HStack(alignment: .bottom, spacing: 8) {
+            if message.role == .user { Spacer(minLength: 44) }
+            if message.role == .sumi {
+                LivingLightOrb(size: 24)
+            }
             Text(message.text)
                 .padding(.horizontal, 14).padding(.vertical, 10)
-                .background(background, in: RoundedRectangle(cornerRadius: 18))
-                .foregroundStyle(message.role == .user ? Color.white : Color.primary)
-            if message.role == .sumi { Spacer(minLength: 40) }
+                .background(background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .foregroundStyle(message.role == .user ? AnyShapeStyle(Color(.systemBackground)) : AnyShapeStyle(.primary))
+            if message.role == .sumi { Spacer(minLength: 44) }
         }
     }
 
     private var background: Color {
-        message.role == .user ? .accentColor : Color(.secondarySystemBackground)
+        message.role == .user ? Color.primary : Color(.secondarySystemBackground)
     }
 }
 
