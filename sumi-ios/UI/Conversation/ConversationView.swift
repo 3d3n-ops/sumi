@@ -53,7 +53,7 @@ struct ConversationView: View {
                         Text("sumi").font(.headline)
                         HStack(spacing: 3) {
                             Circle().fill(SumiTheme.tileGreen).frame(width: 5, height: 5)
-                            Text("On-device").font(.caption2).foregroundStyle(.secondary)
+                            Text("Secure cloud").font(.caption2).foregroundStyle(.secondary)
                         }
                     }
                 }

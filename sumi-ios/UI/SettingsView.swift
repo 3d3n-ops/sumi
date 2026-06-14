@@ -107,12 +107,20 @@ struct SettingsView: View {
     }
 
     private var onDeviceBadge: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "lock.fill").font(.footnote.weight(.semibold))
-            Text("Processed on-device · independently verified").font(.subheadline.weight(.medium))
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "lock.fill")
+                .font(.footnote.weight(.semibold))
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Your data stays on your device.")
+                    .font(.subheadline.weight(.semibold))
+                Text("Sumi's AI runs in our secure cloud (Claude). Only what a request needs is sent — never sold, never used for training.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Spacer(minLength: 0)
         }
-        .foregroundStyle(SumiTheme.tileGreen)
         .padding(.horizontal, 16).padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: SumiTheme.cardRadius, style: .continuous)
