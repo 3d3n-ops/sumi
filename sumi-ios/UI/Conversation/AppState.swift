@@ -19,5 +19,9 @@ final class AppState {
     /// auto-start the mic, then resets it.
     var pendingVoiceSession = false
 
+    /// A query to submit as soon as the conversation screen appears — used by the
+    /// onboarding "first moment" so a chosen starter carries straight into chat.
+    var pendingQuery: String?
+
     private init() {}
 }

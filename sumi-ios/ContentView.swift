@@ -29,7 +29,6 @@ struct ContentView: View {
     private var main: some View {
         NavigationStack {
             ConversationView()
-                .navigationTitle("Sumi")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
