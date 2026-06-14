@@ -16,45 +16,33 @@ struct WelcomeView: View {
     var stepCount: Int = 6
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 24)
-
-            // Hero: the orb over a faint ambient wash.
-            ZStack {
-                LivingLightWash(size: 340)
-                LivingLightOrb(size: 188)
-            }
-            .frame(maxHeight: 320)
-
-            Spacer(minLength: 16)
-
-            Text("hello, I'm sumi")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundStyle(.primary)
-
-            Text("Your assistant, attuned to you —\nand quietly one step ahead.")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.top, 10)
-                .padding(.horizontal, 8)
-
-            Spacer()
-
-            PageDots(count: stepCount, index: stepIndex)
-                .padding(.bottom, 22)
-
-            SumiPrimaryButton("Get started", action: onGetStarted)
-
-            Text("On-device by default · Private")
-                .font(.footnote)
-                .foregroundStyle(.tertiary)
+        OnboardingHeroScaffold(
+            stepIndex: stepIndex,
+            stepCount: stepCount,
+            buttonTitle: "Get started",
+            footnote: "On-device by default · Private",
+            onContinue: onGetStarted
+        ) {
+            VStack(spacing: 0) {
+                // Hero: the orb over a faint ambient wash.
+                ZStack {
+                    LivingLightWash(size: 340)
+                    LivingLightOrb(size: 188)
+                }
+                .frame(height: 300)
                 .padding(.top, 12)
+
+                Text("hello, I'm sumi")
+                    .font(.largeTitle.weight(.bold))
+                    .foregroundStyle(.primary)
+                    .padding(.top, 8)
+
+                Text("Your assistant, attuned to you —\nand quietly one step ahead.")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 10)
+            }
         }
-        .padding(.horizontal, SumiTheme.screenMargin)
-        .padding(.bottom, 16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
     }
 }
 

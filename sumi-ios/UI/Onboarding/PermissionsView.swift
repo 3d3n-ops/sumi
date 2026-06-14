@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct PermissionsView: View {
     var onContinue: () -> Void = {}
@@ -16,6 +17,8 @@ struct PermissionsView: View {
     @AppStorage(SumiPrefKey.micEnabled) private var micEnabled = false
     @AppStorage(SumiPrefKey.onscreenAwareness) private var onscreenAwareness = true
     @AppStorage(SumiPrefKey.notificationsEnabled) private var notificationsEnabled = false
+
+    @State private var deniedFeature: String?
 
     var body: some View {
         OnboardingScaffold(
@@ -34,7 +37,8 @@ struct PermissionsView: View {
                     isOn: $micEnabled
                 )
                 .onChange(of: micEnabled) { _, on in
-                    if on { Task { micEnabled = await PermissionsService.requestMicrophone() } }
+                    guard on else { return }
+                    Task { await request("Microphone", PermissionsService.requestMicrophone, into: $micEnabled) }
                 }
 
                 PermissionCard(
@@ -51,10 +55,34 @@ struct PermissionsView: View {
                     isOn: $notificationsEnabled
                 )
                 .onChange(of: notificationsEnabled) { _, on in
-                    if on { Task { notificationsEnabled = await PermissionsService.requestNotifications() } }
+                    guard on else { return }
+                    Task { await request("Notifications", PermissionsService.requestNotifications, into: $notificationsEnabled) }
                 }
             }
         }
+        .alert("\(deniedFeature ?? "Permission") access is off", isPresented: deniedBinding) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Not now", role: .cancel) {}
+        } message: {
+            Text("Turn it on in Settings whenever you're ready.")
+        }
+    }
+
+    /// Runs a permission request; reflects the real result in the toggle and, if
+    /// denied, surfaces the "open Settings" alert (iOS won't re-prompt once denied).
+    @MainActor
+    private func request(_ name: String, _ ask: @MainActor () async -> Bool, into binding: Binding<Bool>) async {
+        let granted = await ask()
+        binding.wrappedValue = granted
+        if !granted { deniedFeature = name }
+    }
+
+    private var deniedBinding: Binding<Bool> {
+        Binding(get: { deniedFeature != nil }, set: { if !$0 { deniedFeature = nil } })
     }
 }
 

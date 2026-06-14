@@ -22,56 +22,48 @@ struct FirstMomentView: View {
     ]
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 8)
+        OnboardingHeroScaffold(
+            stepIndex: stepIndex,
+            stepCount: stepCount,
+            buttonTitle: "Start using sumi",
+            onContinue: onStart
+        ) {
+            VStack(spacing: 0) {
+                Text("Give it a try")
+                    .font(.largeTitle.weight(.bold))
+                    .padding(.top, 8)
+                Text("Tap the orb and say something — or pick a starter.")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 8)
 
-            Text("Give it a try")
-                .font(.system(size: 30, weight: .bold))
-            Text("Tap the orb and say something — or pick a starter.")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.top, 8)
-                .padding(.horizontal, 12)
+                Button {
+                    orbTaps += 1
+                    listening.toggle()
+                } label: {
+                    LivingLightOrb(size: 196, isActive: listening)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 28)
+                .sensoryFeedback(.impact(weight: .medium), trigger: orbTaps)
 
-            Spacer(minLength: 16)
+                Text(listening ? "Listening…" : "Tap to speak")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 16)
+                    .animation(.easeInOut, value: listening)
 
-            Button {
-                orbTaps += 1
-                listening.toggle()
-            } label: {
-                LivingLightOrb(size: 196, isActive: listening)
-            }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.impact(weight: .medium), trigger: orbTaps)
-
-            Text(listening ? "Listening…" : "Tap to speak")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding(.top, 16)
-                .animation(.easeInOut, value: listening)
-
-            Spacer(minLength: 16)
-
-            VStack(spacing: 10) {
-                ForEach(starters, id: \.1) { starter in
-                    StarterChip(symbol: starter.0, text: starter.1) {
-                        listening = true
-                        orbTaps += 1
+                VStack(spacing: 10) {
+                    ForEach(starters, id: \.1) { starter in
+                        StarterChip(symbol: starter.0, text: starter.1) {
+                            listening = true
+                            orbTaps += 1
+                        }
                     }
                 }
+                .padding(.top, 28)
             }
-
-            Spacer()
-
-            PageDots(count: stepCount, index: stepIndex)
-                .padding(.bottom, 20)
-            SumiPrimaryButton("Start using sumi", action: onStart)
         }
-        .padding(.horizontal, SumiTheme.screenMargin)
-        .padding(.bottom, 16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
     }
 }
 
