@@ -11,8 +11,22 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var showSettings = false
+    @AppStorage(SumiPrefKey.onboardingComplete) private var onboardingComplete = false
 
     var body: some View {
+        Group {
+            if onboardingComplete {
+                main
+            } else {
+                OnboardingView {
+                    withAnimation(.easeInOut) { onboardingComplete = true }
+                }
+                .transition(.opacity)
+            }
+        }
+    }
+
+    private var main: some View {
         NavigationStack {
             ConversationView()
                 .navigationTitle("Sumi")
